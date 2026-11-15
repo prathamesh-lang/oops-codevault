@@ -3,7 +3,7 @@ import Prism from 'prismjs';
 import 'prismjs/components/prism-clike';
 import 'prismjs/components/prism-c';
 import 'prismjs/components/prism-cpp';
-import { BookOpen, Code, Copy, Check, Download } from 'lucide-react';
+import { BookOpen, Code, Copy, Check, Download, Terminal, HelpCircle, AlertTriangle, Layers } from 'lucide-react';
 import type { Practical, CodeTabType } from '../data/types';
 
 interface CodeViewerProps {
@@ -62,7 +62,6 @@ export default function CodeViewer({ practical, initialTab = 'code' }: CodeViewe
   };
 
   const downloadCpp = () => {
-    // Uses direct blob to guarantee 100% fidelity with on-screen code
     const blob = new Blob([practical.sourceCode], { type: 'text/plain; charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -74,37 +73,35 @@ export default function CodeViewer({ practical, initialTab = 'code' }: CodeViewe
     URL.revokeObjectURL(url);
   };
 
+  const tabs: { id: CodeTabType; label: string; icon: React.ReactNode }[] = [
+    { id: 'code', label: 'C++ Source Code', icon: <Code size={14} /> },
+    { id: 'algorithm', label: 'Step-by-Step Algorithm', icon: <BookOpen size={14} /> },
+    { id: 'output', label: 'Actual Sample Output', icon: <Terminal size={14} /> },
+    { id: 'viva', label: 'Viva Q&A & Notes', icon: <HelpCircle size={14} /> },
+  ];
+
   const lines = practical.sourceCode.split('\n');
 
   return (
     <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden bg-white dark:bg-slate-900 shadow-sm">
       {/* ── Tab Bar ── */}
       <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950 px-2 flex-wrap gap-y-2">
-        <div className="flex">
-          <button
-            type="button"
-            onClick={() => setActiveTab('code')}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-              activeTab === 'code'
-                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-semibold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <Code size={14} />
-            <span>C++ Source Code</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('algorithm')}
-            className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium border-b-2 transition-colors ${
-              activeTab === 'algorithm'
-                ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-semibold'
-                : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
-            }`}
-          >
-            <BookOpen size={14} />
-            <span>Step-by-Step Algorithm</span>
-          </button>
+        <div className="flex overflow-x-auto scrollbar-none">
+          {tabs.map(tab => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex items-center gap-1.5 px-3.5 py-2.5 text-xs font-medium border-b-2 whitespace-nowrap transition-colors ${
+                activeTab === tab.id
+                  ? 'border-primary-600 text-primary-600 dark:text-primary-400 font-semibold'
+                  : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+              }`}
+            >
+              {tab.icon}
+              <span>{tab.label}</span>
+            </button>
+          ))}
         </div>
 
         {/* ── Action Buttons ── */}
@@ -195,6 +192,155 @@ export default function CodeViewer({ practical, initialTab = 'code' }: CodeViewe
               );
             })}
           </ol>
+
+          {algorithm.explanation && (
+            <div className="mt-8 pt-6 border-t border-slate-100 dark:border-slate-800">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 mb-2">
+                Implementation Walkthrough
+              </h4>
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 leading-relaxed">
+                {algorithm.explanation}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Sample Output View ── */}
+      {activeTab === 'output' && (
+        <div className="p-6 max-h-[620px] overflow-y-auto space-y-6">
+          {/* Normal Output */}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <Terminal size={14} className="text-emerald-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Verified Execution Output
+              </h3>
+            </div>
+            {practical.sampleOutput.inputDescription && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                {practical.sampleOutput.inputDescription}
+              </p>
+            )}
+            <div className="bg-slate-900 dark:bg-slate-950 text-slate-100 rounded-lg p-4 font-mono text-xs leading-relaxed border border-slate-800 overflow-x-auto shadow-inner">
+              <pre className="m-0 whitespace-pre-wrap">{practical.sampleOutput.output}</pre>
+            </div>
+            {practical.sampleOutput.note && (
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">
+                Note: {practical.sampleOutput.note}
+              </p>
+            )}
+          </div>
+
+          {/* Error / Exception Output */}
+          {practical.errorCaseOutput && (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-2">
+                <AlertTriangle size={14} className="text-amber-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  Exception / Error Handling Case
+                </h3>
+              </div>
+              {practical.errorCaseOutput.inputDescription && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                  {practical.errorCaseOutput.inputDescription}
+                </p>
+              )}
+              <div className="bg-slate-900 dark:bg-slate-950 text-amber-200 rounded-lg p-4 font-mono text-xs leading-relaxed border border-amber-900/40 overflow-x-auto shadow-inner">
+                <pre className="m-0 whitespace-pre-wrap">{practical.errorCaseOutput.output}</pre>
+              </div>
+              {practical.errorCaseOutput.note && (
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2 italic">
+                  Note: {practical.errorCaseOutput.note}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ── Viva Questions & Notes View ── */}
+      {activeTab === 'viva' && (
+        <div className="p-6 max-h-[620px] overflow-y-auto space-y-6">
+          {/* Viva Q&A */}
+          <div>
+            <div className="flex items-center gap-2 mb-3">
+              <HelpCircle size={15} className="text-primary-500" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                Viva Voce Questions & Answers
+              </h3>
+            </div>
+            <div className="space-y-3">
+              {practical.vivaQuestions.map((vq, i) => (
+                <div
+                  key={i}
+                  className="p-3.5 bg-slate-50 dark:bg-slate-800/60 rounded-lg border border-slate-200/80 dark:border-slate-700/60"
+                >
+                  <p className="text-xs sm:text-sm font-semibold text-slate-900 dark:text-white mb-1.5 flex items-start gap-2">
+                    <span className="text-primary-600 dark:text-primary-400 shrink-0">Q{i + 1}.</span>
+                    <span>{vq.question}</span>
+                  </p>
+                  <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 pl-5 leading-relaxed">
+                    {vq.answer}
+                  </p>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Key Classes & Functions Table */}
+          {practical.keyClassesAndFunctions.length > 0 && (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-3">
+                <Layers size={14} className="text-indigo-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Important Classes, Functions & Operators
+                </h3>
+              </div>
+              <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-800">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-100 dark:bg-slate-800/80 text-slate-700 dark:text-slate-300 font-semibold border-b border-slate-200 dark:border-slate-800">
+                    <tr>
+                      <th className="py-2.5 px-3">Identifier</th>
+                      <th className="py-2.5 px-3">Description & Role</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                    {practical.keyClassesAndFunctions.map((item, i) => (
+                      <tr key={i} className="hover:bg-slate-50 dark:hover:bg-slate-800/40">
+                        <td className="py-2 px-3 font-mono text-primary-600 dark:text-primary-400 whitespace-nowrap font-medium">
+                          {item.name}
+                        </td>
+                        <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                          {item.description}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+
+          {/* Important Exam Pitfalls */}
+          {practical.importantNotes.length > 0 && (
+            <div className="pt-4 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex items-center gap-2 mb-3">
+                <AlertTriangle size={14} className="text-amber-500" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
+                  Common Mistakes & Practical Exam Notes
+                </h3>
+              </div>
+              <ul className="space-y-2">
+                {practical.importantNotes.map((note, i) => (
+                  <li key={i} className="text-xs sm:text-sm text-slate-600 dark:text-slate-300 flex items-start gap-2">
+                    <span className="text-amber-500 font-bold">•</span>
+                    <span>{note}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       )}
     </div>
